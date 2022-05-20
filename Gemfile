@@ -2,8 +2,16 @@ source 'https://rubygems.org'
 
 gemspec
 
+version = ENV['RAILS_VERSION'] || 'default'
+
 platforms :ruby do
-  gem 'sqlite3', '1.3.10'
+  gem 'pg'
+
+  if version.start_with?('4.2', '5.0')
+    gem 'sqlite3', '~> 1.3.13'
+  else
+    gem 'sqlite3', '~> 1.4'
+  end
 end
 
 platforms :jruby do
@@ -14,10 +22,10 @@ version = ENV['RAILS_VERSION'] || 'default'
 
 case version
 when 'master'
-  gem 'rails', { git: 'https://github.com/rails/rails.git' }
+  gem 'railties', { git: 'https://github.com/rails/rails.git' }
   gem 'arel', { git: 'https://github.com/rails/arel.git' }
 when 'default'
-  gem 'rails', '>= 4.2'
+  gem 'railties', '>= 6.0'
 else
-  gem 'rails', "~> #{version}"
+  gem 'railties', "~> #{version}"
 end
