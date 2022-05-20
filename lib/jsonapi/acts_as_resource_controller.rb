@@ -8,8 +8,8 @@ module JSONAPI
     def self.included(base)
       base.extend ClassMethods
       base.include Callbacks
-      base.before_action :ensure_correct_media_type, only: [:create, :update, :create_relationship, :update_relationship]
-      base.before_action :ensure_valid_accept_media_type
+      #base.before_action :ensure_correct_media_type, only: [:create, :update, :create_relationship, :update_relationship]
+      #base.before_action :ensure_valid_accept_media_type
       base.cattr_reader :server_error_callbacks
       base.define_jsonapi_resources_callbacks :process_operations
     end
@@ -99,6 +99,22 @@ module JSONAPI
                                                                  server_error_callbacks: @request.server_error_callbacks)
     end
 
+    def ensure_correct_media_type
+      unless request.content_type == JSONAPI::MEDIA_TYPE
+        fail JSONAPI::Exceptions::UnsupportedMediaTypeError.new(request.content_type)
+      end
+    rescue => e
+      handle_exceptions(e)
+    end
+
+    def ensure_valid_accept_media_type
+      unless valid_accept_media_type?
+        fail JSONAPI::Exceptions::NotAcceptableError.new(request.accept)
+      end
+    rescue => e
+      handle_exceptions(e)
+    end
+
     private
 
     def resource_klass
@@ -115,22 +131,6 @@ module JSONAPI
 
     def resource_klass_name
       @resource_klass_name ||= "#{self.class.name.underscore.sub(/_controller$/, '').singularize}_resource".camelize
-    end
-
-    def ensure_correct_media_type
-      unless request.content_type == JSONAPI::MEDIA_TYPE
-        fail JSONAPI::Exceptions::UnsupportedMediaTypeError.new(request.content_type)
-      end
-    rescue => e
-      handle_exceptions(e)
-    end
-
-    def ensure_valid_accept_media_type
-      unless valid_accept_media_type?
-        fail JSONAPI::Exceptions::NotAcceptableError.new(request.accept)
-      end
-    rescue => e
-      handle_exceptions(e)
     end
 
     def valid_accept_media_type?
@@ -236,7 +236,7 @@ module JSONAPI
       when JSONAPI::Exceptions::Error
         render_errors(e.errors)
       else
-        if JSONAPI.configuration.exception_class_whitelisted?(e)
+        if JSONAPI.configuration.exception_class_allowlisted?(e)
           fail e
         else
           internal_server_error = JSONAPI::Exceptions::InternalServerError.new(e)
@@ -250,7 +250,7 @@ module JSONAPI
     # caught that is not a JSONAPI::Exceptions::Error
     # Useful for additional logging or notification configuration that
     # would normally depend on rails catching and rendering an exception.
-    # Ignores whitelist exceptions from config
+    # Ignores allowlist exceptions from config
 
     module ClassMethods
 
