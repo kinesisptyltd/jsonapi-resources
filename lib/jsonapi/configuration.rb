@@ -22,7 +22,7 @@ module JSONAPI
                 :top_level_meta_include_page_count,
                 :top_level_meta_page_count_key,
                 :allow_transactions,
-                :exception_class_whitelist,
+                :exception_class_allowlist,
                 :always_include_to_one_linkage_data,
                 :always_include_to_many_linkage_data,
                 :cache_formatters,
@@ -69,8 +69,8 @@ module JSONAPI
       # raise a Pundit::NotAuthorizedError at some point during operations
       # processing. If you want to use Rails' `rescue_from` macro to
       # catch this error and render a 403 status code, you should add
-      # the `Pundit::NotAuthorizedError` to the `exception_class_whitelist`.
-      self.exception_class_whitelist = []
+      # the `Pundit::NotAuthorizedError` to the `exception_class_allowlist`.
+      self.exception_class_allowlist = []
 
       # Resource Linkage
       # Controls the serialization of resource linkage for non compound documents
@@ -155,8 +155,8 @@ module JSONAPI
       return formatter
     end
 
-    def exception_class_whitelisted?(e)
-      @exception_class_whitelist.flatten.any? { |k| e.class.ancestors.include?(k) }
+    def exception_class_allowlisted?(e)
+      @exception_class_allowlist.flatten.any? { |k| e.class.ancestors.include?(k) }
     end
 
     def default_processor_klass=(default_processor_klass)
@@ -185,7 +185,7 @@ module JSONAPI
 
     attr_writer :allow_transactions
 
-    attr_writer :exception_class_whitelist
+    attr_writer :exception_class_allowlist
 
     attr_writer :always_include_to_one_linkage_data
 
