@@ -65,16 +65,16 @@ class PostsControllerTest < ActionController::TestCase
     assert_equal "All requests must use the '#{JSONAPI::MEDIA_TYPE}' Accept without media type parameters. This request specified '#{@request.headers['Accept']}'.", json_response['errors'][0]['detail']
   end
 
-  def test_exception_class_whitelist
+  def test_exception_class_allowlist
     original_config = JSONAPI.configuration.dup
     $PostProcessorRaisesErrors = true
     # test that the operations dispatcher rescues the error when it
-    # has not been added to the exception_class_whitelist
+    # has not been added to the exception_class_allowlist
     get :index
     assert_response 500
     # test that the operations dispatcher does not rescue the error when it
-    # has been added to the exception_class_whitelist
-    JSONAPI.configuration.exception_class_whitelist << PostsController::SpecialError
+    # has been added to the exception_class_allowlist
+    JSONAPI.configuration.exception_class_allowlist << PostsController::SpecialError
     get :index
     assert_response 403
   ensure
@@ -84,7 +84,7 @@ class PostsControllerTest < ActionController::TestCase
 
   def test_on_server_error_block_callback_with_exception
     original_config = JSONAPI.configuration.dup
-    JSONAPI.configuration.exception_class_whitelist = []
+    JSONAPI.configuration.exception_class_allowlist = []
     $PostProcessorRaisesErrors = true
 
     @controller.class.instance_variable_set(:@callback_message, "none")
@@ -105,7 +105,7 @@ class PostsControllerTest < ActionController::TestCase
 
   def test_on_server_error_method_callback_with_exception
     original_config = JSONAPI.configuration.dup
-    JSONAPI.configuration.exception_class_whitelist = []
+    JSONAPI.configuration.exception_class_allowlist = []
     $PostProcessorRaisesErrors = true
 
     #ignores methods that don't exist
@@ -3577,9 +3577,9 @@ class Api::V7::CategoriesControllerTest < ActionController::TestCase
     assert_match /Internal Server Error/, json_response['errors'][0]['detail']
   end
 
-  def test_not_whitelisted_error_in_controller
+  def test_not_allowlisted_error_in_controller
     original_config = JSONAPI.configuration.dup
-    JSONAPI.configuration.exception_class_whitelist = []
+    JSONAPI.configuration.exception_class_allowlist = []
     get :show, params: {id: '1'}
     assert_response 500
     assert_match /Internal Server Error/, json_response['errors'][0]['detail']
@@ -3587,10 +3587,10 @@ class Api::V7::CategoriesControllerTest < ActionController::TestCase
     JSONAPI.configuration = original_config
   end
 
-  def test_whitelisted_error_in_controller
+  def test_allowlisted_error_in_controller
     original_config = JSONAPI.configuration.dup
     $PostProcessorRaisesErrors = true
-    JSONAPI.configuration.exception_class_whitelist = [PostsController::SubSpecialError]
+    JSONAPI.configuration.exception_class_allowlist = [PostsController::SubSpecialError]
     assert_raises PostsController::SubSpecialError do
       get :show, params: {id: '1'}
     end

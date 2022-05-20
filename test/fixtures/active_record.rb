@@ -612,7 +612,7 @@ class PostsController < BaseController
   class SpecialError < StandardError; end
   class SubSpecialError < PostsController::SpecialError; end
 
-  # This is used to test that classes that are whitelisted are reraised by
+  # This is used to test that classes that are allowlisted are reraised by
   # the operations dispatcher.
   rescue_from PostsController::SpecialError do
     head :forbidden
