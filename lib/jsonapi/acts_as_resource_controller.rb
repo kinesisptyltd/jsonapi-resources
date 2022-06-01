@@ -58,8 +58,9 @@ module JSONAPI
       process_request
     end
 
-    def process_request
-      @request = JSONAPI::RequestParser.new(params, context: context,
+    def process_request(param_overrides = nil)
+      new_params = param_overrides.present? ? params.merge(param_overrides) : params
+      @request = JSONAPI::RequestParser.new(new_params, context: context,
                                             key_formatter: key_formatter,
                                             server_error_callbacks: (self.class.server_error_callbacks || []))
       unless @request.errors.empty?
