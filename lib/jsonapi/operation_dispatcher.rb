@@ -26,7 +26,11 @@ module JSONAPI
         operations_meta = {}
         operations_links = {}
         operations.each do |operation|
-          results.add_result(process_operation(operation))
+
+          processed_operation = process_operation(operation)
+          results.add_result(processed_operation)
+
+          # results.add_result(process_operation(operation))
           rollback(transactional) if results.has_errors?
         end
         results.meta = operations_meta

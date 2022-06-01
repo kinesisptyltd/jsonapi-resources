@@ -71,6 +71,7 @@ module JSONAPI
       fields = params[:fields]
 
       verified_filters = resource_klass.verify_filters(filters, context)
+
       resource_records = resource_klass.find(verified_filters,
                                              context: context,
                                              include_directives: include_directives,
