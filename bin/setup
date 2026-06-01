@@ -1,0 +1,73 @@
+#!/bin/sh -eu
+
+# bin/setup - bootstrap jsonapi-resources (Kinesis fork) for development from a
+# fresh clone.
+#
+# jsonapi-resources is a Ruby gem (a library, not an app). The Kinesis apps
+# (kinesisptyltd/integrated and kinesisptyltd/city) consume this fork pinned to
+# commits on the topic/forcessl-fix branch (v0.8.x), and run it under
+# Ruby 3.1.2 with Rails ~> 6.1.7. This script bootstraps that same environment
+# so the gem can be built and its test suite run.
+#
+# Setup for a gem means:
+#   1. make sure Ruby and Bundler are available
+#   2. install the gem's dependencies with Bundler
+#
+# There is no separate database step. The test suite uses SQLite
+# (test/config/database.yml -> database "test_db") and builds its schema
+# in-process at load time via ActiveRecord::Schema.define(... force: true), so
+# the test_db file is created and reset automatically when the tests run.
+#
+# This script is idempotent: it installs Bundler only if missing and otherwise
+# defers to `bundle install`, which is safe to run repeatedly. It edits no
+# tracked files.
+#
+# POSIX /bin/sh only - no bashisms.
+
+# Run from the repository root regardless of where the script is invoked.
+cd "$(dirname "$0")/.."
+
+log()  { printf '==> %s\n' "$*"; }
+warn() { printf 'WARNING: %s\n' "$*" >&2; }
+
+# --- Ruby ------------------------------------------------------------------
+# The consumer apps run Ruby 3.1.2; that is the expected development Ruby here.
+if ! command -v ruby >/dev/null 2>&1; then
+  warn "Ruby is not on PATH. Install Ruby 3.1.2 (matching the Kinesis apps) and re-run."
+  warn "With rbenv: 'rbenv install 3.1.2 && rbenv local 3.1.2'."
+  exit 1
+fi
+log "Using Ruby $(ruby -e 'print RUBY_VERSION')"
+
+# --- Rails version ---------------------------------------------------------
+# The Gemfile reads RAILS_VERSION to choose a Rails release; left unset it
+# resolves to the latest Rails, which this version of the gem does not support.
+# Default to the Rails line the Kinesis apps use so a fresh clone gets a
+# working, lockable dependency set. Honour an existing value if set.
+RAILS_VERSION="${RAILS_VERSION:-6.1.7}"
+export RAILS_VERSION
+log "Targeting Rails ${RAILS_VERSION} (override by exporting RAILS_VERSION)"
+
+# --- Bundler ---------------------------------------------------------------
+if ! command -v bundle >/dev/null 2>&1; then
+  log "Installing Bundler"
+  gem install bundler --conservative
+fi
+log "Using Bundler $(bundle --version | awk '{print $NF}')"
+
+# --- Dependencies ----------------------------------------------------------
+log "Installing gem dependencies with Bundler"
+bundle install --jobs 4 --retry 3
+
+log "Setup complete. Dependencies are installed."
+printf '\n'
+printf 'Run the test suite with:\n'
+printf '    bundle exec rake test\n\n'
+printf 'The suite uses a local SQLite database (test_db); no database setup is needed.\n'
+printf '\n'
+printf 'NOTE: this is the v0.8.x line (consumed by the Kinesis apps), whose test\n'
+printf 'suite predates the current toolchain. It does not yet pass cleanly on\n'
+printf 'Ruby 3.1.2 / Rails 6.1.7 - known breaks are concurrent-ruby/logger,\n'
+printf 'sprockets-rails asset manifest, and Psych 4 YAML fixtures. Porting the\n'
+printf 'suite to this toolchain is tracked separately; this script only handles\n'
+printf 'dependency bootstrap.\n'
