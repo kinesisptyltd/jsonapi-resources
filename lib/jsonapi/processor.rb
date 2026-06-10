@@ -130,9 +130,15 @@ module JSONAPI
       relationship_type = params[:relationship_type].to_sym
       fields = params[:fields]
 
+      # relationship_type is request-supplied; resolve it against the declared
+      # relationships and dispatch via the registered name so the public_send
+      # below cannot be steered onto an arbitrary method.
+      relationship = source_klass._relationship(relationship_type)
+      raise JSONAPI::Exceptions::RecordNotFound.new(relationship_type) unless relationship
+
       source_resource = source_klass.find_by_key(source_id, context: context, fields: fields)
 
-      related_resource = source_resource.public_send(relationship_type)
+      related_resource = source_resource.public_send(relationship.name)
 
       return JSONAPI::ResourceOperationResult.new(:ok, related_resource)
     end
@@ -147,9 +153,15 @@ module JSONAPI
       paginator = params[:paginator]
       fields = params[:fields]
 
+      # relationship_type is request-supplied; resolve it against the declared
+      # relationships and dispatch via the registered name so the public_send
+      # below cannot be steered onto an arbitrary method.
+      relationship = source_klass._relationship(relationship_type)
+      raise JSONAPI::Exceptions::RecordNotFound.new(relationship_type) unless relationship
+
       source_resource ||= source_klass.find_by_key(source_id, context: context, fields: fields)
 
-      related_resources = source_resource.public_send(relationship_type,
+      related_resources = source_resource.public_send(relationship.name,
                                                       context: context,
                                                       filters: filters,
                                                       include_directives: include_directives,
@@ -160,7 +172,7 @@ module JSONAPI
       if ((JSONAPI.configuration.top_level_meta_include_record_count) ||
           (paginator && paginator.class.requires_record_count) ||
           (JSONAPI.configuration.top_level_meta_include_page_count))
-        related_resource_records = source_resource.public_send("records_for_" + relationship_type)
+        related_resource_records = source_resource.public_send("records_for_#{relationship.name}")
         records = resource_klass.filter_records(filters, {},
                                                 related_resource_records)
 
